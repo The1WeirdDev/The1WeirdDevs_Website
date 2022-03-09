@@ -1,0 +1,27 @@
+{
+  "name": "the1weirddev",
+  "version": "0.0.4",
+  "description": "A Website with games, projects, emulators, and more.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/The1WeirdDev/The1WeirdDevs_Website.git"
+  },
+  "keywords": [
+    "Ibeatkids","Games","Educational","Games Unblocked","Unblocked"
+  ],
+  "author": "The1WeirdDev",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/The1WeirdDev/The1WeirdDevs_Website/issues"
+  },
+  "homepage": "https://github.com/The1WeirdDev/The1WeirdDevs_Website#readme",
+  "dependencies": {
+    "express": "^4.17.3",
+    "fs": "^0.0.1-security",
+    "geoip-lite": "^1.4.3"
+  }
+}
