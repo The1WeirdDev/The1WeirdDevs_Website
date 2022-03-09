@@ -7,6 +7,7 @@ const {lookup}  = require('geoip-lite');
 
 //Server Data/Logs
 var accessLogStream = createLogger("logs", getDate())
+var errorLogStream = createLogger("crash-reports", getDate())
 
 const server = express()
 var currentReq;
@@ -17,6 +18,7 @@ const port = 8080
 const hostname = "0.0.0.0"
 var inMaintenance = false;
 var enableLogging = true;
+var closeOnException = false;
 
 function createLogger(loc, loggerName){
     var location = __dirname + `/${loc}/`
@@ -33,6 +35,20 @@ server.listen(port, hostname, function(error, data){
         console.log(`Listening on http://localhost:${port}`)
     }
 })
+
+//Error Handeling
+process.on('uncaughtException', err => {
+    console.log(`Uncaught Exception: ${err.stack}`)
+
+    errorLogStream.write(err.stack + "\n\n")
+
+    if(closeOnException)
+        process.exit(1)
+})
+
+//Fnaf Plagiarized
+server.use(express.static(__dirname + '/Pages/Games/fnaf1/'));
+console.log(__dirname + '/Pages/Games/fnaf1/')
 
 //Getting all request at the same time
 server.get("*",function(req, res){
@@ -66,8 +82,6 @@ server.get("*",function(req, res){
             var newPath = url.replace('/games/','');     
             
             if(newPath == "fnaf1" || newPath == "fnaf2" || newPath == "fnaf3" || newPath == "fnaf4")  
-                loadFileData("Games/" + newPath + "/" + newPath + ".html");
-            else if(newPath == "geometry-dash")
                 loadFileData("Games/" + newPath + "/" + newPath + ".html");
             else{
                 loadFileData("status/404/index.html");
@@ -103,15 +117,14 @@ server.get("*",function(req, res){
 })
 
 function loadFileData(location){
-    currentRes.writeHead(200, {'Content-Type':'text/html'})
     newloc = "Pages/" + location
     fs.readFile(newloc, function(error, data){
-
         if(error){
             currentRes.writeHead(404, {'Content-Type':'text/html'})
             currentRes.write("<hmtl><title>Error 404</title><p1>This page does not exist</p1></html>")
             console.log(`This File Does not exist at ${newloc}`);
         }else{
+            currentRes.writeHead(200, {'Content-Type':'text/html'})
             currentRes.write(data)
         }
         currentRes.end()
