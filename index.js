@@ -19,6 +19,7 @@ const hostname = "0.0.0.0"
 var inMaintenance = false;
 var enableLogging = true;
 var closeOnException = false;
+var isFileThere = false;
 
 function createLogger(loc, loggerName){
     var location = __dirname + `/${loc}/`
@@ -46,9 +47,6 @@ process.on('uncaughtException', err => {
         process.exit(1)
 })
 
-//Fnaf Plagiarized
-server.use(express.static(__dirname + 'Pages/Games/fnaf1/'));
-
 //Getting all request at the same time
 server.get("*",function(req, res){
     currentReq = req
@@ -66,7 +64,7 @@ server.get("*",function(req, res){
 
     //Had a bug where the day would show the day of the week instead of the date
     var data = `${ip} location: ${location ? location.city : "Unavailable"} is requesting data from "${url}" on ${date.getMonth() + 1}/${date.getDate()}/${date.getDate()} at ${hours}:${date.getMinutes()}:${date.getSeconds()} ${am_or_pm}`
-    console.log(data)
+    //console.log(data)
 
     if(url.slice(-1) == '/')
         url = url.slice(0, -1);
@@ -84,17 +82,14 @@ server.get("*",function(req, res){
         else if(url.startsWith("/games/")){
             var newPath = url.replace('/games/','');     
             
-            if(newPath == "fnaf1" || newPath == "fnaf2" || newPath == "fnaf3" || newPath == "fnaf4")  
+            //Fix Fnaf1   || newPath == "fnaf1" 
+            if(newPath == "fnaf2" || newPath == "fnaf3" || newPath == "fnaf4")  
                 loadFileData("Games/" + newPath + "/" + newPath + ".html");
-            else if(newPath.startsWith("fnaf1")){
-                var newPathf = newPath.replace('fnaf1','');     
+        
+            else if(getFiles(newPath, "spelunky")){
 
-                if(newPathf == "" || newPathf == "/")
-                    loadFileData("Games/" + newPath + "/" + "fnaf1" + ".html");
-                else
-                    loadFileData("Games/" + newPath);
             }
-            
+
             else{
                 loadFileData("status/404/index.html");
             }
@@ -128,20 +123,32 @@ server.get("*",function(req, res){
     }
 })
 
-function loadFileData(location){
+function getFilesWithName(url, name){
+    
+}
+
+function loadFileData(location, doSomethingIfNot = true){
+
+    currentRes.setHeader('content-type', 'text/html');
+
     newloc = "Pages/" + location
     fs.readFile(newloc, function(error, data){
 
         if(error){
-            currentRes.writeHead(404, {'Content-Type':'text/html'})
-            currentRes.write("<hmtl><title>Error 404</title><p1>This page does not exist</p1></html>")
-            console.log(`This File Does not exist at ${newloc}`);
+            if(doSomethingIfNot){
+                currentRes.write("<hmtl><title>Error 404</title><p1>This page does not exist</p1></html>")
+                console.log(`This File Does not exist at ${newloc}`);
+            }
+            isFileThere = false;
         }else{
-            currentRes.writeHead(200, {'Content-Type':'text/html'})
             currentRes.write(data)
+            isFileThere = true;
+            
         }
         currentRes.end()
     })
+
+    
 }
 
 function getDate(){
