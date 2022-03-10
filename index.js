@@ -2,6 +2,9 @@
 const express = require("express")
 const fs = require("fs")
 const {lookup}  = require('geoip-lite');
+const { blockResources } = require('./middleware');
+const { imageExists, cssExists } = require('./plugins');
+const { logger } = require('./util');
 
 //Will Be using a config file in the future
 
@@ -16,10 +19,23 @@ var currentRes;
 //Server Port & Hostname
 const port = 8080
 const hostname = "0.0.0.0"
+
+
+
+
+
+
+
+
+
+
+
+
 var inMaintenance = false;
 var enableLogging = true;
 var closeOnException = false;
 var isFileThere = false;
+
 
 function createLogger(loc, loggerName){
     var location = __dirname + `/${loc}/`
@@ -75,7 +91,7 @@ server.get("*",function(req, res){
     if(!inMaintenance){
         if(url == "/" || url == "")res.redirect("/home")
 
-        else if(url == "/home" || url == "/about" || url == "/games" || url == "/projects" || url == "/emulators" || url == "/mods")
+        else if(url == "/home" || url == "/about" || url == "/games" || url == "/proxys" || url == "/emulators" || url == "/mods")
             loadFileData("Home" + url + ".html");
             
         
@@ -84,9 +100,9 @@ server.get("*",function(req, res){
             
             //Fix Fnaf1   || newPath == "fnaf1" 
             if(newPath == "fnaf2" || newPath == "fnaf3" || newPath == "fnaf4")  
-                loadFileData("Games/" + newPath + "/" + newPath + ".html");
+                loadFileData("Games/Fnaf/" + newPath + "/" + newPath + ".html");
         
-            else if(getFiles(newPath, "spelunky")){
+            else if(getFilesWithName(newPath, "spelunky")){
 
             }
 
@@ -124,7 +140,14 @@ server.get("*",function(req, res){
 })
 
 function getFilesWithName(url, name){
-    
+    if(url.startsWith(name)){
+        var newPathf = url.split(name.length)
+
+        console.log(newPathf);
+    }
+
+    isFileThere = false;
+    return false;
 }
 
 function loadFileData(location, doSomethingIfNot = true){
@@ -159,3 +182,67 @@ function getDate(){
 
     return `${month}_${day}_${year}`;
 }
+
+
+
+//Proxy
+const parseIncomingRequest = (clientRequest, clientResponse) => {
+    const requestToFulfil = url.parse(clientRequest.url);
+  
+    // Frame the request to be forwarded via Backend to External Source
+    const options = {
+      method: clientRequest.method,
+      headers: clientRequest.headers,
+      host: requestToFulfil.hostname,
+      port: requestToFulfil.port || 80,
+      path: requestToFulfil.path
+    }
+  
+    // PLUGINS
+    if (blockResources(options, imageExists)) {
+      options.allowed = false;
+      logger(options);
+  
+      // Don't allow the request to proceed and terminate here itself
+      clientResponse.end();
+    } else {
+      options.allowed = true;
+      logger(options);
+  
+      // Execute the Request
+      executeRequest(options, clientRequest, clientResponse);
+    }
+  
+  }
+  
+  const executeRequest = (options, clientRequest, clientResponse) => {
+    const externalRequest = http.request(options, (externalResponse) => {
+  
+      // Write Headers to clientResponse
+      clientResponse.writeHead(externalResponse.statusCode, externalResponse.headers);
+  
+      // Forward the data being received from external source back to client
+      externalResponse.on("data", (chunk) => {
+        clientResponse.write(chunk);
+      });
+  
+      // End the client response when the request from external source has completed
+      externalResponse.on("end", () => {
+        clientResponse.end();
+      });
+    });
+  
+    // Map data coming from client request to the external request being made
+    clientRequest.on("data", (chunk) => {
+  
+      if(JSON.parse(chunk.toString()).language === "english") {
+        chunk = Buffer.from(JSON.stringify({"language":"spanish"}))
+      }
+      externalRequest.write(chunk);
+    });
+  
+    // Map the end of client request to the external request being made
+    clientRequest.on("end", () => {
+      externalRequest.end();
+    });
+  }
