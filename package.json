@@ -4,7 +4,7 @@
   "description": "A Website with games, projects, emulators, and more.",
   "main": "index.js",
   "scripts": {
-    "test": "node index.js"
+    "test": "node src/index.js"
   },
   "repository": {
     "type": "git",
@@ -27,8 +27,12 @@
     "express": "^4.17.3",
     "fs": "^0.0.1-security",
     "geoip-lite": "^1.4.3",
+    "http-proxy": "^1.18.1",
     "middleware": "^1.0.0",
     "plugins": "^0.4.2",
+    "request": "^2.88.2",
+    "require": "^2.4.20",
+    "unblocker": "^2.3.0",
     "util": "^0.12.4"
   }
 }
