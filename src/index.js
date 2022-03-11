@@ -16,7 +16,7 @@ function get(url, name){
     _res.writeHead(200, _headers)
   return _res.end(
     `
-    <title>skribbl</title>
+    <title>${name}</title>
     <embed src="${url}${newPath}" width="100%" height="100%"/>
     `
   )
@@ -45,132 +45,18 @@ http.createServer(function(req,res){
         `
       )
     }
+    else if(get("http://slither.io","slither")){}
     else if(get("https://skribbl.io","skribble")){}
-      /*
-    else if(req.url.startsWith("/skribbl")){
-      var newPath = req.url.slice("/skribbl")
-      if(newPath == "" || newPath == " ")
-        newPath = "/"
-      console.log(newPath)
+    else if(get("https://1v1.lol","1v1")){}
+    else if(get("https://krunker.io","krunker")){}
+    else if(get("https://covirus.io","covirus")){}
 
-      
-
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>skribbl</title>
-        <embed src="https://skribbl.io${newPath}" width="100%" height="100%"/>
-        `
-      )
-    }*/
-    else if(req.url == "/1v1"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>1v1</title>
-        <embed src="https://1v1.lol/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/krunker"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>krunker</title>
-        <embed src="https://krunker.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/paper"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>paper</title>
-        <embed src="http://paper.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/surviv"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>surviv</title>
-        <embed src="https://surviv.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/covirus"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>covirus</title>
-        <embed src="https://covirus.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/smashkarts"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>smashkarts</title>
-        <embed src="https://smashkarts.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/google"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>google</title>
-        <embed src="https://www.google.com/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/youtube"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>youtube</title>
-        <embed src="https://youtube.com/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/wormax"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>wormax</title>
-        <embed src="http://wormax.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/shellshockers"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>shellshockers</title>
-        <embed src="https://shellshock.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/discord"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>Slither</title>
-        <embed src="https://discord.com/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/diep"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>Slither</title>
-        <embed src="https://diep.io/" width="100%" height="100%"/>
-        `
-      )
-    }
+    else if(get("http://paper.io","paper")){}
+    else if(get("https://smashkarts.io","smashkarts")){}
+    else if(get("http://wormax.io/","wormax")){}
+    else if(get("https://shellshock.io","shellshock")){}
+    else if(get("https://diep.io/","diep")){}
+    
     else{
       res.writeHead(404, headers)
       return res.end("ERROR 404: File Not Found.");
