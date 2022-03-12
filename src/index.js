@@ -1,22 +1,34 @@
-var http = require("http")
-var Unblocker = require("unblocker")
+//Libraries
+var Unblocker = require('unblocker')
+const express = require('express')
+const {lookup}  = require('geoip-lite');
+const fs = require('fs')
+const path = require('path')
+
+//Files
+var utils = require(__dirname + '/utils.js')();
+var config = require('./config.js');
+
+//Server Logs
+var accessLogStream = createLogger("logs", getDate())
+var errorLogStream = createLogger("crash-reports", getDate())
+
+//Server Data
+const server = express()
 var unblocker = Unblocker({})
+var currentReq;
+var currentRes;
+var currentHeaders;
 
-var _headers;
-var _req;
-var _res;
-
-function get(url, gameUrl, name){
- 
+function getProxy(url, gameUrl, name){ 
   if(url.startsWith("/" + name)){
 
-    var newPath = _req.url.slice(name.length + 1)
+    var newPath = currentReq.url.slice(name.length + 1)
     if(newPath == "/")
       newPath = ""
-    
-    console.log(url)
-      _res.writeHead(200, _headers)
-      return _res.end(
+
+      currentRes.writeHead(200, currentHeaders)
+      return currentRes.end(
       `
       <title>${name}</title>
       <embed src="${gameUrl}${newPath}" width="100%" height="100%"/>
@@ -26,60 +38,6 @@ function get(url, gameUrl, name){
     return false
 }
 
-http.createServer(function(req,res){
-  unblocker(req,res,function(err){
-    var headers = {"content-type": "text/html"}
-    if(err){
-      res.writeHead(500, headers)
-      return res.end(err.stack || err)
-    }
-    _headers = headers
-
-    _req = req
-    _res = res
-
-    if(get(req.url, "http://slither.io","slither")){}
-    else if(get(req.url, "https://skribbl.io","skribbl")){}
-    else if(get(req.url, "https://1v1.lol","1v1")){}
-    else if(get(req.url, "https://krunker.io","krunker")){}
-    else if(get(req.url, "https://covirus.io","covirus")){}
-
-    else if(get(req.url, "http://paper.io","paper")){}
-    else if(get(req.url, "https://smashkarts.io","smashkarts")){}
-    else if(get(req.url, "http://wormax.io","wormax")){}
-    else if(get(req.url, "https://shellshock.io","shellshock")){}
-    else if(get(req.url, "https://diep.io","diep")){}
-    else if(get(req.url, "https://hole-io.com","hole")){}
-    
-    else{
-      res.writeHead(404, headers)
-      return res.end("ERROR 404: File Not Found.");
-    }
-  })
-})
-.listen(8080)
-/*
-//Libraries
-const express = require("express")
-const http = require("http")
-const fs = require("fs")
-const {lookup}  = require('geoip-lite');
-var https = require('https');
-const { response } = require('express');
-
-//Files
-var utils = require(__dirname + '/utils.js')();
-var config = require('./config.js');
-
-//Server Logs
-var accessLogStream = createLogger("logs", getDate())
-var errorLogStream = createLogger("crash-reports", getDate())
-
-//Server Data
-const server = express()
-var currentReq;
-var currentRes;
-
 
 server.listen(config.port, config.hostname, function(error, data){
     if(error){
@@ -103,398 +61,115 @@ process.on('uncaughtException', err => {
 
 //Getting all request at the same time
 server.get("*",function(req, res){
-    currentReq = req
-    currentRes = res
-    
-    var date = new Date();
+  currentReq = req
+  currentRes = res
 
-    var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress 
-    var url = req.url;
-    var location = lookup(ip);
 
-    
-    var am_or_pm = (date.getHours() < 12 ? "AM" : "PM")
-    var hours = (date.getHours() < 12 ? date.getHours() : date.getHours() - 12);
+  //Getting Information
 
-    //Had a bug where the day would show the day of the week instead of the date
-    var data = `${ip} location: ${location ? location.city : "Unavailable"} is requesting data from "${url}" on ${date.getMonth() + 1}/${date.getDate()}/${date.getDate()} at ${hours}:${date.getMinutes()}:${date.getSeconds()} ${am_or_pm}`
-    //console.log(data)
+  //var date = new Date();
+  //var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress 
+  var url = req.url;
+  //var location = lookup(ip);
+  //var am_or_pm = (date.getHours() < 12 ? "AM" : "PM")
+  //var hours = (date.getHours() < 12 ? date.getHours() : date.getHours() - 12);
+  //var data = `${ip} location: ${location ? location.city : "Unavailable"} is requesting data from "${url}" on ${date.getMonth() + 1}/${date.getDate()}/${date.getDate()} at ${hours}:${date.getMinutes()}:${date.getSeconds()} ${am_or_pm}`
+  
+  //Displaying Data
+  //console.log(data)
 
-    onRequest("",req,res)
+  //Logging Data to file
+  //if(config.enableLogging)
+    //accessLogStream.write(data + "\n")
+  var headers = {"content-type": "text/html"}
+  currentHeaders = headers;
 
-    /*
+  unblocker(req,res,function(err){
+        
     if(url.slice(-1) == '/')
-        url = url.slice(0, -1);
-    if(config.enableLogging)
-        accessLogStream.write(data + "\n")
+      url = url.slice(0, -1);
 
     if(!config.inMaintenance){
-        if(url == "/")res.redirect("/home")
-        else if(url.startsWith("/proxy/web")){
+      if(url == "")res.redirect("/home")
+      else if(url =="/home" || url =="/about" || url =="/games" || url =="/proxys" || url =="/emulators" || url =="/mods")loadFileData("home" + url + ".html")
+      else if(url.startsWith("/images/")){
+        
+        console.time("dbsave");
+        loadFileData("home/"+url.slice(1))
+        console.timeEnd("dbsave");
+        return;
+      }
 
-          onRequest("/proxy/web",req,res)
+      else if(url.startsWith("/games/")){
+        var i = url.slice(7)
+
+        if(i.startsWith("fnaf")){
+          var _fnaf = i.slice(4)
+          var _loc
+
+          if(_fnaf == "1" || _fnaf == "2" || _fnaf == "3" || _fnaf == "4")
+            _loc = _fnaf + "/fnaf" + _fnaf + ".html"
+          else
+          _loc = _fnaf
+          
+          loadFileData("/games/fnaf/fnaf" + _loc);
         }
         else{
-            loadFileData("status/404/index.html");
+          loadFileData("status/404/index.html");
         }
+      }
 
-       
-    }else{
-        loadFileData("status/503/index.html");
-    }
-})
 
-function onRequest(base, client_req, client_res) {
-  var options = {
-    hostname: 'www.google.com',
-    port: 80,
-    path: "",
-    method: client_req.method,
-    headers: client_req.headers
-  };
 
-  var proxy = http.request(options, function (res) {
-    client_res.writeHead(res.statusCode, res.headers)
-    res.pipe(client_res, {
-      end: true
-    });
-  });
+      //Proxys
+      else if(getProxy(req.url, "http://slither.io","proxy-slither")){}
+      else if(getProxy(req.url, "https://skribbl.io","proxy-skribbl")){}
+      else if(getProxy(req.url, "https://1v1.lol","proxy-1v1")){}
+      else if(getProxy(req.url, "https://krunker.io","proxy-krunker")){}
+      else if(getProxy(req.url, "https://covirus.io","proxy-covirus")){}
 
-  client_req.pipe(proxy, {
-    end: true
-  });
-}
+      else if(getProxy(req.url, "http://paper.io","proxy-paper")){}
+      else if(getProxy(req.url, "https://smashkarts.io","proxy-smashkarts")){}
+      else if(getProxy(req.url, "http://wormax.io","proxy-wormax")){}
+      else if(getProxy(req.url, "https://shellshock.io","proxy-shellshock")){}
+      else if(getProxy(req.url, "https://diep.io","proxy-diep")){}
+      else if(getProxy(req.url, "https://hole-io.com","proxy-hole")){}
+      else if(getProxy(req.url, "https://evoworld.io/","proxy-evoworld")){}
 
-function loadFileData(location, doSomethingIfNot = true){
-    var isThere;
-    currentRes.setHeader('Content-Type', 'text/html')
 
-    newloc = __dirname + "/Pages/" + location
-    fs.readFile(newloc, function(error, data){
-
-        if(error){
-            if(doSomethingIfNot){
-                currentRes.write("<hmtl><title>Error 404</title><p1>This page does not exist</p1></html>")
-                console.log(`This File Does not exist at ${newloc}`)
-            }
-            isThere = false
-        }else{
-            currentRes.write(data)
-            isThere = true
-        }
-        currentRes.end()
-    })
-    return isThere
-}
-
-function getDate(){
-    const date = new Date();
-    let year = date.getFullYear();
-    let month = date.getMonth() + 1;
-    let day = date.getDate();
-
-    return `${month}_${day}_${year}`;
-}*/
-
-/*var http = require("http")
-var Unblocker = require("unblocker")
-var unblocker = Unblocker({})
-
-function get(url, name){
-  var can = false;
-
-  var newPath = req.url.slice("/skribbl")
-      if(newPath == "" || newPath == " ")
-        newPath = "/"
-      console.log(newPath)
-
-      
-
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>skribbl</title>
-        <embed src="https://skribbl.io${newPath}" width="100%" height="100%"/>
-        `
-      )
-
-  return can
-}
-
-http.createServer(function(req,res){
-  unblocker(req,res,function(err){
-    var headers = {"content-type": "text/html"}
-    if(err){
-      res.writeHead(500, headers)
-      return res.end(err.stack || err)
-    }
-    if(req.url == "/slither"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>Slither</title>
-        <embed src="http://slither.io" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url.startsWith("/skribbl")){
-      var newPath = req.url.slice("/skribbl")
-      if(newPath == "" || newPath == " ")
-        newPath = "/"
-      console.log(newPath)
-
-      
-
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>skribbl</title>
-        <embed src="https://skribbl.io${newPath}" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/1v1"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>1v1</title>
-        <embed src="https://1v1.lol/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/krunker"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>krunker</title>
-        <embed src="https://krunker.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/paper"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>paper</title>
-        <embed src="http://paper.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/surviv"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>surviv</title>
-        <embed src="https://surviv.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/covirus"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>covirus</title>
-        <embed src="https://covirus.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/smashkarts"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>smashkarts</title>
-        <embed src="https://smashkarts.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/google"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>google</title>
-        <embed src="https://www.google.com/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/youtube"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>youtube</title>
-        <embed src="https://youtube.com/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/wormax"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>wormax</title>
-        <embed src="http://wormax.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/shellshockers"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>shellshockers</title>
-        <embed src="https://shellshock.io/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/discord"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>Slither</title>
-        <embed src="https://discord.com/" width="100%" height="100%"/>
-        `
-      )
-    }
-    else if(req.url == "/diep"){
-      res.writeHead(200, headers)
-      return res.end(
-        `
-        <title>Slither</title>
-        <embed src="https://diep.io/" width="100%" height="100%"/>
-        `
-      )
+      //404 Not Found
+      else{
+        loadFileData("status/404/index.html");
+        return;
+      }
     }
     else{
-      res.writeHead(404, headers)
-      return res.end("ERROR 404: File Not Found.");
+      loadFileData("status/500/index.html");
     }
+
   })
+
 })
-.listen(8080)
-/*
-//Libraries
-const express = require("express")
-const http = require("http")
-const fs = require("fs")
-const {lookup}  = require('geoip-lite');
-var https = require('https');
-const { response } = require('express');
-
-//Files
-var utils = require(__dirname + '/utils.js')();
-var config = require('./config.js');
-
-//Server Logs
-var accessLogStream = createLogger("logs", getDate())
-var errorLogStream = createLogger("crash-reports", getDate())
-
-//Server Data
-const server = express()
-var currentReq;
-var currentRes;
 
 
-server.listen(config.port, config.hostname, function(error, data){
+function loadFileData(location){
+  newloc = __dirname + "/Pages/" + location
+
+  
+  //Setting Required Headers
+  //var ext = path.extname(newloc)
+  currentRes.setHeader('Content-Type', 'text/html')
+
+  fs.readFile(newloc, function(error, data){
+    
     if(error){
-        console.log(`Error listening on port ${config.port} reason ${data}`)
-        
+      currentRes.write("<hmtl><title>Error 404</title><p1>This page does not exist</p1></html>")
+      console.log(`This File Does not exist at ${newloc}`)
     }else{
-        console.log(`Listening on http://localhost:${config.port}`)
+      currentRes.write(data)
     }
-})
-
-//Error Handeling
-
-process.on('uncaughtException', err => {
-    console.log(`Uncaught Exception: ${err.stack}`)
-
-    errorLogStream.write(err.stack + "\n\n")
-
-    if(closeOnException)
-        process.exit(1)
-})
-
-//Getting all request at the same time
-server.get("*",function(req, res){
-    currentReq = req
-    currentRes = res
-    
-    var date = new Date();
-
-    var ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress 
-    var url = req.url;
-    var location = lookup(ip);
-
-    
-    var am_or_pm = (date.getHours() < 12 ? "AM" : "PM")
-    var hours = (date.getHours() < 12 ? date.getHours() : date.getHours() - 12);
-
-    //Had a bug where the day would show the day of the week instead of the date
-    var data = `${ip} location: ${location ? location.city : "Unavailable"} is requesting data from "${url}" on ${date.getMonth() + 1}/${date.getDate()}/${date.getDate()} at ${hours}:${date.getMinutes()}:${date.getSeconds()} ${am_or_pm}`
-    //console.log(data)
-
-    onRequest("",req,res)
-
-    /*
-    if(url.slice(-1) == '/')
-        url = url.slice(0, -1);
-    if(config.enableLogging)
-        accessLogStream.write(data + "\n")
-
-    if(!config.inMaintenance){
-        if(url == "/")res.redirect("/home")
-        else if(url.startsWith("/proxy/web")){
-
-          onRequest("/proxy/web",req,res)
-        }
-        else{
-            loadFileData("status/404/index.html");
-        }
-
-       
-    }else{
-        loadFileData("status/503/index.html");
-    }
-})
-
-function onRequest(base, client_req, client_res) {
-  var options = {
-    hostname: 'www.google.com',
-    port: 80,
-    path: "",
-    method: client_req.method,
-    headers: client_req.headers
-  };
-
-  var proxy = http.request(options, function (res) {
-    client_res.writeHead(res.statusCode, res.headers)
-    res.pipe(client_res, {
-      end: true
-    });
-  });
-
-  client_req.pipe(proxy, {
-    end: true
-  });
-}
-
-function loadFileData(location, doSomethingIfNot = true){
-    var isThere;
-    currentRes.setHeader('Content-Type', 'text/html')
-
-    newloc = __dirname + "/Pages/" + location
-    fs.readFile(newloc, function(error, data){
-
-        if(error){
-            if(doSomethingIfNot){
-                currentRes.write("<hmtl><title>Error 404</title><p1>This page does not exist</p1></html>")
-                console.log(`This File Does not exist at ${newloc}`)
-            }
-            isThere = false
-        }else{
-            currentRes.write(data)
-            isThere = true
-        }
-        currentRes.end()
-    })
-    return isThere
+    currentRes.end()
+  })
 }
 
 function getDate(){
@@ -504,4 +179,4 @@ function getDate(){
     let day = date.getDate();
 
     return `${month}_${day}_${year}`;
-}*/
+}
